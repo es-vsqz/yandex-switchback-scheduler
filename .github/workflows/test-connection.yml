@@ -1,0 +1,22 @@
+name: Тест связи с Директом (только чтение)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Забрать код из репозитория
+        uses: actions/checkout@v4
+
+      - name: Установить Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Проверить связь с Директом
+        env:
+          YANDEX_DIRECT_TOKEN: ${{ secrets.YANDEX_DIRECT_TOKEN }}
+          YANDEX_CLIENT_LOGIN: ${{ secrets.YANDEX_CLIENT_LOGIN }}
+        run: python test_connection.py
