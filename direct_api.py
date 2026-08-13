@@ -54,20 +54,27 @@ def _request(service: str, body: dict) -> dict:
 
 
 def get_states(names: list) -> dict:
-    """Вернуть {campaign_name: {"id": int, "state": str}} для живых кампаний по именам."""
-    result = {}
-    for batch in chunks(names, CAMPAIGN_BATCH):
-        payload = _request(
-            "campaigns",
-            {
-                "method": "get",
-                "params": {
-                    "SelectionCriteria": {"Names": batch},
-                    "FieldNames": ["Id", "Name", "State"],
-                },
+    """Вернуть {campaign_name: {"id": int, "state": str}} для живых кампаний по именам.
+
+    У campaigns.get нет фильтра по имени — тянем все кампании кабинета одним
+    запросом (Page.Limit покрывает любой реалистичный размер аккаунта) и
+    сопоставляем по имени на своей стороне.
+    """
+    payload = _request(
+        "campaigns",
+        {
+            "method": "get",
+            "params": {
+                "SelectionCriteria": {},
+                "FieldNames": ["Id", "Name", "State"],
+                "Page": {"Limit": 10000},
             },
-        )
-        for c in payload["result"]["Campaigns"]:
+        },
+    )
+    wanted = set(names)
+    result = {}
+    for c in payload["result"]["Campaigns"]:
+        if c["Name"] in wanted:
             result[c["Name"]] = {"id": c["Id"], "state": c["State"]}
     return result
 
