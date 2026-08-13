@@ -1,0 +1,24 @@
+name: Switchback ON/OFF (nbd RU)
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Забрать код из репозитория
+        uses: actions/checkout@v4
+
+      - name: Установить Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Синхронизировать расписание с Директом
+        env:
+          YANDEX_DIRECT_TOKEN: ${{ secrets.YANDEX_DIRECT_TOKEN }}
+          YANDEX_CLIENT_LOGIN: ${{ secrets.YANDEX_CLIENT_LOGIN }}
+        run: python sync_schedule.py
