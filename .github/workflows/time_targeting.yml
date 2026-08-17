@@ -31,7 +31,7 @@ jobs:
 
       - name: Установить библиотеку Google Auth
         if: ${{ github.event.inputs.pilot_campaign == '' }}
-        run: pip install google-auth
+        run: pip install google-auth requests
 
       - name: Сверить план с Директом и записать в Google Таблицу
         if: ${{ github.event.inputs.pilot_campaign == '' }}
