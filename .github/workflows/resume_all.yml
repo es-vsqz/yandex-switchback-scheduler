@@ -1,0 +1,22 @@
+name: Resume all campaigns (one-time cutover to TimeTargeting)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  resume:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Забрать код из репозитория
+        uses: actions/checkout@v4
+
+      - name: Установить Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Перевести все кампании в ON
+        env:
+          YANDEX_DIRECT_TOKEN: ${{ secrets.YANDEX_DIRECT_TOKEN }}
+          YANDEX_CLIENT_LOGIN: ${{ secrets.YANDEX_CLIENT_LOGIN }}
+        run: python resume_all.py
