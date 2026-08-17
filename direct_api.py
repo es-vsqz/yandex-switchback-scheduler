@@ -80,21 +80,23 @@ def get_states(names: list) -> dict:
 
 
 def suspend(campaign_ids: list) -> None:
+    errors = []
     for batch in chunks(campaign_ids, CAMPAIGN_BATCH):
         payload = _request("campaigns", {"method": "suspend", "params": {"SelectionCriteria": {"Ids": batch}}})
-        _raise_on_action_errors(payload)
+        errors += _action_errors(payload, "SuspendResults")
+    if errors:
+        raise DirectApiError(f"Директ вернул ошибки при выключении кампаний: {errors}")
 
 
 def resume(campaign_ids: list) -> None:
+    errors = []
     for batch in chunks(campaign_ids, CAMPAIGN_BATCH):
         payload = _request("campaigns", {"method": "resume", "params": {"SelectionCriteria": {"Ids": batch}}})
-        _raise_on_action_errors(payload)
+        errors += _action_errors(payload, "ResumeResults")
+    if errors:
+        raise DirectApiError(f"Директ вернул ошибки при включении кампаний: {errors}")
 
 
-def _raise_on_action_errors(payload: dict) -> None:
-    problems = [
-        r for r in payload.get("result", {}).get("SuspendResults", payload.get("result", {}).get("ResumeResults", []))
-        if "Errors" in r
-    ]
-    if problems:
-        raise DirectApiError(f"Директ вернул ошибки по кампаниям: {problems}")
+def _action_errors(payload: dict, results_key: str) -> list:
+    """Errors: [] у Директа означает «без ошибок» — считаем проблемой только непустой список."""
+    return [r for r in payload.get("result", {}).get(results_key, []) if r.get("Errors")]

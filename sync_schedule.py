@@ -103,13 +103,19 @@ def main() -> None:
             action = "—"
         print(f"{name:<55} {actual_state:<10} {want:<8} {action}")
 
-    try:
-        if to_suspend:
+    errors = []
+    if to_suspend:
+        try:
             direct_api.suspend(to_suspend)
-        if to_resume:
+        except direct_api.DirectApiError as exc:
+            errors.append(str(exc))
+    if to_resume:
+        try:
             direct_api.resume(to_resume)
-    except direct_api.DirectApiError as exc:
-        fail(f"Ошибка при переключении кампаний: {exc}")
+        except direct_api.DirectApiError as exc:
+            errors.append(str(exc))
+    if errors:
+        fail("Ошибка при переключении кампаний:\n" + "\n".join(errors))
 
     print(f"\nГотово. Выключено: {len(to_suspend)}, включено: {len(to_resume)}, без изменений: {len(desired) - len(to_suspend) - len(to_resume)}.")
 
