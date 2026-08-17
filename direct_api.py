@@ -100,3 +100,51 @@ def resume(campaign_ids: list) -> None:
 def _action_errors(payload: dict, results_key: str) -> list:
     """Errors: [] у Директа означает «без ошибок» — считаем проблемой только непустой список."""
     return [r for r in payload.get("result", {}).get(results_key, []) if r.get("Errors")]
+
+
+def update_time_targeting(campaign_schedules: dict) -> None:
+    """campaign_schedules: {campaign_id: [строки Schedule.Items]}. Не более 10 кампаний за вызов."""
+    items = list(campaign_schedules.items())
+    errors = []
+    for batch in chunks(items, CAMPAIGN_BATCH):
+        payload = _request(
+            "campaigns",
+            {
+                "method": "update",
+                "params": {
+                    "Campaigns": [
+                        {
+                            "Id": campaign_id,
+                            "TimeZone": "Europe/Moscow",
+                            "TimeTargeting": {
+                                "Schedule": {"Items": schedule_items},
+                                "ConsiderWorkingWeekends": "NO",
+                            },
+                        }
+                        for campaign_id, schedule_items in batch
+                    ]
+                },
+            },
+        )
+        errors += _action_errors(payload, "UpdateResults")
+    if errors:
+        raise DirectApiError(f"Директ вернул ошибки при обновлении TimeTargeting: {errors}")
+
+
+def get_time_targeting(campaign_id: int) -> list:
+    """Читает обратно TimeTargeting.Schedule.Items кампании — для проверки после update."""
+    payload = _request(
+        "campaigns",
+        {
+            "method": "get",
+            "params": {
+                "SelectionCriteria": {"Ids": [campaign_id]},
+                "FieldNames": ["Id", "Name", "TimeTargeting"],
+            },
+        },
+    )
+    campaigns = payload["result"]["Campaigns"]
+    if not campaigns:
+        raise DirectApiError(f"Кампания {campaign_id} не найдена")
+    tt = campaigns[0].get("TimeTargeting") or {}
+    return tt.get("Schedule", {}).get("Items", [])

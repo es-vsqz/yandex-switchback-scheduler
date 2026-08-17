@@ -1,0 +1,30 @@
+name: Push TimeTargeting (nbd RU)
+
+on:
+  schedule:
+    - cron: "5 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      pilot_campaign:
+        description: "Только эта кампания (для проверки перед полным раскатом)"
+        required: false
+        default: ""
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Забрать код из репозитория
+        uses: actions/checkout@v4
+
+      - name: Установить Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Залить TimeTargeting в Директ
+        env:
+          YANDEX_DIRECT_TOKEN: ${{ secrets.YANDEX_DIRECT_TOKEN }}
+          YANDEX_CLIENT_LOGIN: ${{ secrets.YANDEX_CLIENT_LOGIN }}
+          PILOT_CAMPAIGN: ${{ github.event.inputs.pilot_campaign }}
+        run: python push_time_targeting.py
