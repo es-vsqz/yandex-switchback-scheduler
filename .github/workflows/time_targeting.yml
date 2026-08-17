@@ -28,3 +28,15 @@ jobs:
           YANDEX_CLIENT_LOGIN: ${{ secrets.YANDEX_CLIENT_LOGIN }}
           PILOT_CAMPAIGN: ${{ github.event.inputs.pilot_campaign }}
         run: python push_time_targeting.py
+
+      - name: Установить библиотеку Google Auth
+        if: ${{ github.event.inputs.pilot_campaign == '' }}
+        run: pip install google-auth
+
+      - name: Сверить план с Директом и записать в Google Таблицу
+        if: ${{ github.event.inputs.pilot_campaign == '' }}
+        env:
+          YANDEX_DIRECT_TOKEN: ${{ secrets.YANDEX_DIRECT_TOKEN }}
+          YANDEX_CLIENT_LOGIN: ${{ secrets.YANDEX_CLIENT_LOGIN }}
+          GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON }}
+        run: python log_drift.py

@@ -148,3 +148,28 @@ def get_time_targeting(campaign_id: int) -> list:
         raise DirectApiError(f"Кампания {campaign_id} не найдена")
     tt = campaigns[0].get("TimeTargeting") or {}
     return tt.get("Schedule", {}).get("Items", [])
+
+
+def get_all_time_targeting(names: list) -> dict:
+    """Вернуть {campaign_name: {"id": int, "schedule_items": list}} одним запросом на весь кабинет."""
+    payload = _request(
+        "campaigns",
+        {
+            "method": "get",
+            "params": {
+                "SelectionCriteria": {},
+                "FieldNames": ["Id", "Name", "TimeTargeting"],
+                "Page": {"Limit": 10000},
+            },
+        },
+    )
+    wanted = set(names)
+    result = {}
+    for c in payload["result"]["Campaigns"]:
+        if c["Name"] in wanted:
+            tt = c.get("TimeTargeting") or {}
+            result[c["Name"]] = {
+                "id": c["Id"],
+                "schedule_items": tt.get("Schedule", {}).get("Items", []),
+            }
+    return result

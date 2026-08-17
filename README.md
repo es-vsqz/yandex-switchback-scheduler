@@ -30,12 +30,15 @@
 - `sync_schedule.py`, `.github/workflows/switchback.yml` — старый механизм, оставлен для аварийного отката.
 - `resume_all.py`, `.github/workflows/resume_all.yml` — разовый скрипт перехода (перевёл все 32 кампании в постоянный ON 17.08.2026), обычно больше не нужен.
 - `test_connection.py`, `.github/workflows/test-connection.yml` — проверка связи с Директом (только чтение, ничего не меняет).
+- `sheets_api.py`, `log_drift.py` — сверяют план (`schedule.csv`) с тем, что реально залито в Директе, и пишут результат в [Google Таблицу](https://docs.google.com/spreadsheets/d/18Ui7OSHLpSKJimlzEjlInlNpc7q_5P08Ln6Kve8ryWc) (см. ниже).
 
 ## Как проверить, что всё работает
 
-Вкладка **Actions** на GitHub → workflow **Push TimeTargeting (nbd RU)**. Прогоны идут раз в 6 часов:
+**Google Таблица** — самый простой способ, не нужно даже заходить в GitHub: [Switchback nbd RU — план vs Директ](https://docs.google.com/spreadsheets/d/18Ui7OSHLpSKJimlzEjlInlNpc7q_5P08Ln6Kve8ryWc). Раз в 6 часов туда дописывается строка `SUMMARY` («32/32 совпадает»), а если что-то разошлось — дополнительно по строке `MISMATCH` на каждую расходящуюся кампанию с деталями. В обычной ситуации в таблице просто растёт ряд одинаковых зелёных по смыслу строк «32/32 совпадает» — это и есть подтверждение, что всё работает.
 
-- ✅ зелёная галочка — план залит, всё в порядке.
+**Вкладка Actions на GitHub** — для более технического взгляда, workflow **Push TimeTargeting (nbd RU)**. Прогоны идут раз в 6 часов:
+
+- ✅ зелёная галочка — план залит и сверка прошла.
 - ❌ красный крестик — что-то пошло не так (например, протух токен). GitHub автоматически пришлёт письмо на почту владельца репозитория при первом же сбое.
 
 Кликнув на прогон → шаг «Залить TimeTargeting в Директ», можно увидеть, какие 7 строк (по одной на день недели) были отправлены для каждой кампании.
@@ -53,6 +56,16 @@ Settings → Actions → General → Actions permissions → **Disable Actions**
    gh secret set YANDEX_DIRECT_TOKEN --repo es-vsqz/yandex-switchback-scheduler
    ```
 2. Логин клиента (`YANDEX_CLIENT_LOGIN` = `porg-y7vq4sb5`) — секрет, обычно менять не нужно.
+3. **Сервисный аккаунт Google** (для записи в Google Таблицу):
+   - [console.cloud.google.com](https://console.cloud.google.com) → создать/выбрать проект → в поиске найти «Google Sheets API» → **Enable**.
+   - IAM & Admin → Service Accounts → **Create Service Account** (имя любое, например `switchback-sheets-writer`) → Done (роль на уровне проекта не нужна).
+   - Открыть созданный сервисный аккаунт → вкладка **Keys** → **Add Key** → **Create new key** → тип **JSON** → скачается файл.
+   - В скачанном JSON найти поле `client_email` (выглядит как `switchback-sheets-writer@...iam.gserviceaccount.com`) — открыть [таблицу](https://docs.google.com/spreadsheets/d/18Ui7OSHLpSKJimlzEjlInlNpc7q_5P08Ln6Kve8ryWc) → **Share** → вставить этот email → права **Editor**.
+   - Сохранить содержимое всего JSON-файла (целиком, от `{` до `}`) как секрет:
+     ```bash
+     gh secret set GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON --repo es-vsqz/yandex-switchback-scheduler
+     ```
+     (вставить весь текст JSON-файла, когда попросит).
 
 ## После теста (после 27.09.2026)
 
