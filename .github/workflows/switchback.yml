@@ -1,8 +1,8 @@
 name: Switchback ON/OFF (nbd RU)
 
 on:
-  schedule:
-    - cron: "*/2 * * * *"
+  # Плановый запуск отключён 17.08.2026 — перешли на TimeTargeting (time_targeting.yml),
+  # см. README, раздел «Почему не suspend/resume». Ручной запуск оставлен как аварийный откат.
   workflow_dispatch:
 
 jobs:
