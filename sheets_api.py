@@ -33,6 +33,12 @@ class SheetsApiError(Exception):
 
 
 def _urlopen_with_retry(req: urllib.request.Request):
+    """
+    Google Sheets время от времени коротко отваливается не только HTTP-ошибкой
+    (503/500/429), но и голым сетевым сбоем — обрыв соединения, тайм-аут чтения
+    (видели оба варианта на проде). Оба случая одинаково транзиентны и одинаково
+    заслуживают повтора, а не падения всего прогона.
+    """
     last_exc = None
     for attempt in range(1, RETRY_ATTEMPTS + 1):
         try:
@@ -42,7 +48,12 @@ def _urlopen_with_retry(req: urllib.request.Request):
             if exc.code not in RETRY_STATUSES or attempt == RETRY_ATTEMPTS:
                 raise SheetsApiError(f"HTTP {exc.code}: {exc.read().decode('utf-8', errors='replace')[:500]}")
             print(f"Google Sheets ответил {exc.code} (попытка {attempt}/{RETRY_ATTEMPTS}), повторяю через {RETRY_BACKOFF_SECONDS}с...")
-            time.sleep(RETRY_BACKOFF_SECONDS)
+        except (TimeoutError, OSError, urllib.error.URLError) as exc:
+            last_exc = exc
+            if attempt == RETRY_ATTEMPTS:
+                raise SheetsApiError(f"сетевая ошибка: {exc}")
+            print(f"Сетевая заминка при обращении к Google Sheets ({exc}) — попытка {attempt}/{RETRY_ATTEMPTS}, повторяю через {RETRY_BACKOFF_SECONDS}с...")
+        time.sleep(RETRY_BACKOFF_SECONDS)
     raise SheetsApiError(str(last_exc))
 
 
