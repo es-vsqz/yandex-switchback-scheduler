@@ -59,9 +59,14 @@ def main() -> None:
         if name in missing:
             continue
         got = live[name]["schedule_items"]
-        if sorted(got) != sorted(want):
+        # Сравниваем только те дни недели, для которых план вообще что-то требует.
+        # Дни, выпавшие из окна теста (ближе к концу теста такое бывает — план на
+        # них не строим, Директ держит для них дефолт без ограничений), не в счёт:
+        # это ожидаемое поведение, а не расхождение.
+        not_in_direct = [w for w in want if w not in got]
+        if not_in_direct:
             mismatch_rows.append(
-                [ts, "MISMATCH", name, f"план: {'; '.join(want)} | в Директе: {'; '.join(got) or 'пусто'}"]
+                [ts, "MISMATCH", name, f"план: {'; '.join(not_in_direct)} | в Директе: {'; '.join(got) or 'пусто'}"]
             )
 
     total = len(planned)
